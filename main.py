@@ -1,10 +1,11 @@
+import os
 import time
 import random
 import requests
 from datetime import datetime
 
-BOT_TOKEN = "8451527123:AAFHXkwQUzE2WGYUCwz80nQIq0bjCNieifQ"
-CHAT_ID = "-1002782511833"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 CHECK_INTERVAL = 1800  # 30 minutes
 MAX_ALERTS_PER_DAY = 7
 
