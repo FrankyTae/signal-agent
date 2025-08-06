@@ -6,18 +6,39 @@ from datetime import datetime
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
-CHECK_INTERVAL = 1800  # 30 minutes
+CHECK_INTERVAL = 60  # 1 minute
 MAX_ALERTS_PER_DAY = 7
 
 SIGNAL_MEMORY = {}
 ALERT_COUNT = {"date": datetime.now().strftime("%Y-%m-%d"), "count": 0}
 
-# === FILTERED COINS (mocked for now) ===
-COINS = [
-    "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "BNB/USDT", "DOGE/USDT",
-    "ADA/USDT", "AVAX/USDT", "LINK/USDT", "MATIC/USDT", "TRX/USDT",
-    "LTC/USDT", "HBAR/USDT", "BCH/USDT", "XLM/USDT", "TON/USDT", "NEAR/USDT"
-]
+# === DYNAMIC COINS FETCHING ===
+def fetch_dynamic_coins():
+    coins = set()
+
+    # --- MEXC Futures ---
+    try:
+        mexc_res = requests.get("https://contract.mexc.com/api/v1/contract/detail").json()
+        for item in mexc_res.get("data", []):
+            symbol = item.get("symbol")
+            if symbol and symbol.endswith("_USDT") and not symbol.startswith("W"):
+                coins.add(symbol.replace("_", "/"))
+    except Exception as e:
+        print(f"[ERROR] MEXC fetch failed: {e}")
+
+    # --- Bitrue Futures ---
+    try:
+        bitrue_res = requests.get("https://fapi.bitrue.com/fapi/v1/exchangeInfo").json()
+        for pair in bitrue_res.get("symbols", []):
+            if pair.get("contractType") != "PERPETUAL":
+                continue
+            symbol = pair.get("symbol")
+            if symbol.endswith("USDT") and not symbol.startswith("W"):
+                coins.add(symbol[:-4] + "/USDT")
+    except Exception as e:
+        print(f"[ERROR] Bitrue fetch failed: {e}")
+
+    return list(coins)
 
 # === SIGNAL GENERATOR ===
 def generate_signal(coin):
@@ -93,31 +114,30 @@ def run_agent():
         today = now.strftime("%Y-%m-%d")
         print(f"[CHECK] {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
-        # Reset daily count
         if ALERT_COUNT["date"] != today:
             ALERT_COUNT["date"] = today
             ALERT_COUNT["count"] = 0
             SIGNAL_MEMORY.clear()
             print("[RESET] Daily counter and memory cleared.")
 
-        for coin in COINS:
-            signal = generate_signal(coin)
-            if not signal:
-                continue
+        coins = fetch_dynamic_coins()
+        print(f"[COINS] Scanning {len(coins)} pairs...")
 
-            # Avoid over-alerting
+        for coin in coins:
             if ALERT_COUNT["count"] >= MAX_ALERTS_PER_DAY:
                 print("[SKIP] Daily alert limit reached.")
                 break
 
-            prev = SIGNAL_MEMORY.get(coin)
-            if prev == signal["type"]:
-                continue  # Same signal already sent
+            signal = generate_signal(coin)
+            if not signal:
+                continue
 
-            # Update memory and send alert
+            if SIGNAL_MEMORY.get(coin) == signal["type"]:
+                continue
+
             SIGNAL_MEMORY[coin] = signal["type"]
-            message = format_msg(signal)
-            send_telegram(message)
+            msg = format_msg(signal)
+            send_telegram(msg)
             ALERT_COUNT["count"] += 1
             print(f"[ALERT] {signal['type'].title()} - {coin}")
 
