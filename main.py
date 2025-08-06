@@ -96,8 +96,12 @@ def format_msg(signal):
             f"📆 Date: {date}"
         )
 
-# === SEND TELEGRAM ===
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML"}
+    try:
+        requests.post(url, data=payload)
+    except Exception as e:
+        print(f"[ERROR] Telegram: {e}")
+
 
