@@ -40,8 +40,9 @@ def fetch_dynamic_coins():
 
     return list(coins)
 
-# === SIGNAL GENERATOR ===
+# === SIGNAL GENERATOR (placeholder for 96% strategy) ===
 def generate_signal(coin):
+    # TODO: Replace with actual 96% success TA + Astro strategy logic
     chance = random.random()
     if chance < 0.4:
         return None
@@ -76,8 +77,7 @@ def format_msg(signal):
             f"📊 Reason: {signal['reason']}\n"
             f"🧠 Confidence: {signal['confidence']}%\n"
             f"🔍 Status: Watching for confirmation\n"
-            f"🕒 Timeframe: {signal['timeframe']}\n\n"
-            f"#AIPirateTradeBot"
+            f"🕒 Timeframe: {signal['timeframe']}\n"
         )
     else:
         return (
@@ -93,55 +93,10 @@ def format_msg(signal):
             f"📊 Confluence: {signal['reason']}\n"
             f"🧠 Confidence: {signal['confidence']}%\n"
             f"🕒 Timeframe: {signal['timeframe']}\n"
-            f"📆 Date: {date}\n\n"
-            f"#AIPirateTradeBot #TradeSignals"
+            f"📆 Date: {date}"
         )
 
 # === SEND TELEGRAM ===
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML"}
-    try:
-        requests.post(url, data=payload)
-    except Exception as e:
-        print(f"[ERROR] Telegram: {e}")
-
-# === MAIN AGENT LOOP ===
-def run_agent():
-    print("[STARTED] Signal Agent is running...")
-    while True:
-        now = datetime.now()
-        today = now.strftime("%Y-%m-%d")
-        print(f"[CHECK] {now.strftime('%Y-%m-%d %H:%M:%S')}")
-
-        if ALERT_COUNT["date"] != today:
-            ALERT_COUNT["date"] = today
-            ALERT_COUNT["count"] = 0
-            SIGNAL_MEMORY.clear()
-            print("[RESET] Daily counter and memory cleared.")
-
-        coins = fetch_dynamic_coins()
-        print(f"[COINS] Scanning {len(coins)} pairs...")
-
-        for coin in coins:
-            if ALERT_COUNT["count"] >= MAX_ALERTS_PER_DAY:
-                print("[SKIP] Daily alert limit reached.")
-                break
-
-            signal = generate_signal(coin)
-            if not signal:
-                continue
-
-            if SIGNAL_MEMORY.get(coin) == signal["type"]:
-                continue
-
-            SIGNAL_MEMORY[coin] = signal["type"]
-            msg = format_msg(signal)
-            send_telegram(msg)
-            ALERT_COUNT["count"] += 1
-            print(f"[ALERT] {signal['type'].title()} - {coin}")
-
-        time.sleep(CHECK_INTERVAL)
-
-if __name__ == "__main__":
-    run_agent()
+    payload = {"chat_id": CHAT_ID, "text": text, "pars
