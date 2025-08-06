@@ -99,4 +99,5 @@ def format_msg(signal):
 # === SEND TELEGRAM ===
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": text, "pars
+    payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML"}
+
